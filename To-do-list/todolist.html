@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Super To-Do List</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      min-height: 100vh;
+      margin: 0;
+      padding-top: 50px;
+      transition: background 0.5s;
+    }
+
+    .todo-container {
+      background: #fff;
+      padding: 30px 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 450px;
+      transition: background 0.5s;
+    }
+
+    .dark-mode .todo-container {
+      background: #2c2c2c;
+      color: #f5f5f5;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .dark-mode h1 {
+      color: #fff;
+    }
+
+    .input-section {
+      display: flex;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    input[type="text"], select {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    .toggle-theme {
+      margin-top: 10px;
+      background: #007bff;
+    }
+
+    .toggle-theme:hover {
+      background: #0069d9;
+    }
+
+    .clear-btn {
+      background: #dc3545;
+      margin-top: 10px;
+    }
+
+    .clear-btn:hover {
+      background: #c82333;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #f9f9f9;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s;
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    li.completed {
+      text-decoration: line-through;
+      color: grey;
+      background: #e0e0e0;
+    }
+
+    .task-info {
+      flex: 1;
+    }
+
+    .task-time {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .priority {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 5px;
+      font-size: 12px;
+      color: white;
+    }
+
+    .low { background: green; }
+    .medium { background: orange; }
+    .high { background: red; }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 5px;
+      color: #555;
+    }
+
+    .actions button:hover {
+      color: #000;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+  <div class="todo-container">
+    <h1>Super To-Do List</h1>
+    <div class="input-section">
+      <input type="text" id="taskInput" placeholder="Add a new task...">
+      <select id="prioritySelect">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <button onclick="addTask()">Add</button>
+    </div>
+    <ul id="taskList"></ul>
+    <button class="clear-btn" onclick="clearAllTasks()">Clear All</button>
+    <button class="toggle-theme" onclick="toggleTheme()">Toggle Dark Mode</button>
+  </div>
+
+  <script>
+    const taskInput = document.getElementById('taskInput');
+    const taskList = document.getElementById('taskList');
+    const prioritySelect = document.getElementById('prioritySelect');
+
+    // Focus on input when page loads
+    window.onload = () => {
+      taskInput.focus();
+      loadTasks();
+    };
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      const priority = prioritySelect.value;
+      if (text === '') return;
+
+      createTaskElement(text, priority, new Date().toLocaleString(), false);
+      saveTasks();
+      taskInput.value = '';
+    }
+
+    function createTaskElement(text, priority, time, completed) {
+      const li = document.createElement('li');
+      if (completed) li.classList.add('completed');
+
+      li.innerHTML = `
+        <div class="task-info">
+          <span class="task-text">${text}</span>
+          <span class="priority ${priority}">${priority.toUpperCase()}</span>
+          <div class="task-time">${time}</div>
+        </div>
+        <div class="actions">
+          <button onclick="toggleComplete(this)">✔</button>
+          <button onclick="editTask(this)">✏</button>
+          <button onclick="deleteTask(this)">🗑</button>
+        </div>
+      `;
+
+      li.addEventListener('click', function(e) {
+        if (!e.target.closest('button')) {
+          toggleComplete(li.querySelector('.actions button'));
+        }
+      });
+
+      taskList.appendChild(li);
+    }
+
+    function toggleComplete(button) {
+      const li = button.closest('li');
+      li.classList.toggle('completed');
+      saveTasks();
+    }
+
+    function editTask(button) {
+      const li = button.closest('li');
+      const textSpan = li.querySelector('.task-text');
+      const newTask = prompt("Edit your task:", textSpan.textContent);
+      if (newTask !== null && newTask.trim() !== '') {
+        textSpan.textContent = newTask.trim();
+        saveTasks();
+      }
+    }
+
+    function deleteTask(button) {
+      if (confirm("Delete this task?")) {
+        button.closest('li').remove();
+        saveTasks();
+      }
+    }
+
+    function clearAllTasks() {
+      if (confirm("Are you sure you want to delete ALL tasks?")) {
+        taskList.innerHTML = '';
+        saveTasks();
+      }
+    }
+
+    function saveTasks() {
+      const tasks = [];
+      taskList.querySelectorAll('li').forEach(li => {
+        tasks.push({
+          text: li.querySelector('.task-text').textContent,
+          priority: li.querySelector('.priority').classList[1],
+          time: li.querySelector('.task-time').textContent,
+          completed: li.classList.contains('completed')
+        });
+      });
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function loadTasks() {
+      const saved = JSON.parse(localStorage.getItem('tasks')) || [];
+      saved.forEach(task => createTaskElement(task.text, task.priority, task.time, task.completed));
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+  </script>
+</body>
+</html>
